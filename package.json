@@ -1,0 +1,27 @@
+{
+  "name": "temporal-time",
+  "version": "1.0.0",
+  "description": "A clock calculating temporal time",
+  "main": "index.html",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "serve"
+  },
+  "keywords": [
+    "clock",
+    "time",
+    "temporal",
+    "time"
+  ],
+  "author": "Niels Seidel <niels.seidel@nise81.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2"
+  },
+  "devDependencies": {
+    "serve": "^11.2.0"
+  }
+}

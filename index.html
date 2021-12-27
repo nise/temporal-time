@@ -1,0 +1,533 @@
+<!--
+TODO
+- fix time after midnight
+- deploy: https://cli.vuejs.org/guide/deployment.html#github-pages
+
+creditd: http://bl.ocks.org/tomgp/6475678
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Temporalzeit</title>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="./manifest.json">
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"
+        integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ=="
+        crossorigin="anonymous"></script>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <style>
+        body {
+            background: #fff;
+            font-family: Arial;
+            max-width: 100%;
+            margin: 20px auto;
+            line-height: 1.2em;
+            font-size: 20px;
+        }
+
+        h1 {
+            margin-top: 0px;
+        }
+
+        svg {
+            stroke: #000;
+            font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+            width: 100%;
+        }
+
+        #rim {
+            fill: none;
+            stroke: #999;
+            stroke-width: 3px;
+        }
+
+        .second-hand {
+            stroke-width: 3;
+
+        }
+
+        .minute-hand {
+            stroke-width: 8;
+            stroke-linecap: round;
+        }
+
+        .hour-hand {
+            stroke-width: 12;
+            stroke-linecap: round;
+        }
+
+        .hands-cover {
+            stroke-width: 3;
+            fill: #fff;
+        }
+
+        .second-tick {
+            stroke-width: 3;
+            fill: #000;
+        }
+
+        .hour-tick {
+            stroke-width: 8; //same as the miute hand
+        }
+
+        .second-label {
+            font-size: 1em;
+        }
+
+        .hour-label {
+            font-size: 2em;
+        }
+
+
+        #app {
+            display: table;
+            text-align: center;
+            margin: 20px auto;
+        }
+
+        .time,
+        .details {
+            text-align: center;
+            margin: 0px auto;
+            padding: 0 10%;
+        }
+
+        .details {
+            width: 30%;
+            font-size: medium;
+        }
+
+        .details ul {
+            text-align: right;
+            list-style-type: none;
+        }
+
+        .time h4 {
+            margin-bottom: 4px;
+            margin: 0 6px 4px 6px;
+        }
+
+        .time-cell {
+            display: inline-block;
+            text-align: center;
+            vertical-align: top;
+            font-size: 1.2em;
+            line-height: 1.2em;
+        }
+
+        .note {
+            color: darkred;
+            font-size: small;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="container">
+        <h1>Temporalzeit</h1>
+        <div class="time">
+            <div class="time-cell">
+                <h4>Temporalzeit</h4>{{ getFormatedTime("temporal")}}<br>
+                <span class="note">Abweichung: {{ timeDifference }} Min</span>
+            </div>
+            <div class="time-cell">
+                <h4>Offizielle Zeit</h4>{{ getFormatedTime("official") }}
+            </div>
+            <div class="time-cell">
+                <h4>Ortszeit</h4>{{getFormatedTime("local") }}
+            </div>
+        </div>
+        <div id="clock"></div>
+        <div class="details">
+            <h4>Details</h4>
+            <ul>
+                <li>Längengrad: {{long}}</li>
+                <li>Breitengrad: {{lat}}</li>
+                <li>Sonnenaufgang: {{rise.getHours() }}:{{rise.getMinutes()}}:{{rise.getSeconds()}}</li>
+                <li>Sonnenuntergang: {{down.getHours() }}:{{down.getMinutes()}}:{{down.getSeconds()}}</li>
+            </ul>
+        </div>
+    </div>
+    <script type="module">
+
+        let app = new Vue({
+            el: '#app',
+            data() {
+                return {
+                    time: new Date(),
+                    localHour: 0,
+                    localMinute: 0,
+                    temporalHour: null,
+                    temporalMinute: null,
+                    timeDifference: 0,
+                    rise: new Date(),
+                    down: new Date(),
+                    lat: 0,
+                    long: 0,
+                    tmp: 0,
+                    // clock display
+                    handData: [],
+                    radians: 0.0174532925,
+                    clockRadius: 250,
+                    margin: 50,
+                    hourHandLength: 0,
+                    width: 0,
+                    height: 0,
+                    hourHandLength: 0,
+                    minuteHandLength: 0,
+                    secondHandLength: 0,
+                    secondHandBalance: 30,
+                    secondTickStart: 0,
+                    secondTickLength: -10,
+                    hourTickStart: 0,
+                    hourTickLength: -18,
+                    secondLabelRadius: 0,
+                    secondLabelYOffset: 5,
+                    hourLabelRadius: 0,
+                    hourLabelYOffset: 7,
+                };
+            },
+
+            mounted() {
+                this.width = (this.clockRadius + this.margin) * 2;
+                this.height = (this.clockRadius + this.margin) * 2;
+                this.hourHandLength = 2 * this.clockRadius / 3;
+                this.minuteHandLength = this.clockRadius;
+                this.secondHandLength = this.clockRadius - 12;
+                this.secondHandBalance = 30;
+                this.secondTickStart = this.clockRadius;
+                this.secondTickLength = -10;
+                this.hourTickStart = this.clockRadius;
+                this.hourTickLength = -18;
+                this.secondLabelRadius = this.clockRadius + 16;
+                this.secondLabelYOffset = 5;
+                this.hourLabelRadius = this.clockRadius - 40;
+                this.hourLabelYOffset = 7;
+
+                this.handData = [
+                    {
+                        type: 'hour',
+                        value: 0,
+                        length: -this.hourHandLength,
+                        scale: this.hourScale
+                    },
+                    {
+                        type: 'minute',
+                        value: 0,
+                        length: -this.minuteHandLength,
+                        scale: this.minuteScale
+                    }/*,
+                    {
+                        type: 'second',
+                        value: 0,
+                        length: -this.secondHandLength,
+                        scale: this.secondScale,
+                        balance: this.secondHandBalance
+                    }*/
+                ];
+
+                this.drawClock()
+                this.time = new Date();
+
+                let _this = this;
+                this.getPosition();
+                this.visualizeClock();
+            },
+
+            methods: {
+                getPosition: function () {
+                    let _this = this;
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(function (position) {
+                            _this.lat = position.coords.latitude;
+                            _this.long = position.coords.longitude;
+                            _this.getSunTimes();
+                        });
+                    }
+                },
+
+                getSunTimes: function () {
+                    if (!this.lat && !this.long) {
+                        return;
+                    }
+                    let d = new Date();
+                    let date = d.getFullYear() + '-' + this.pad(d.getMonth() + 1) + '-' + this.pad(d.getDate());
+                    let url = 'https://api.met.no/weatherapi/sunrise/2.0/.json?lat=' + this.lat + '&lon=' + this.long + '&date=' + date + '&offset=-00:00';
+                    let _this = this;
+
+                    axios
+                        .get(url)
+                        .then(function (response) {
+                            console.log('reponse')
+                            _this.rise = new Date(response.data.location.time[0].sunrise.time); //new Date(2019, 11, 13, 8, 25);
+                            _this.down = new Date(response.data.location.time[0].sunset.time); //new Date(2019, 11, 13, 16, 26);
+                            setInterval(function () {
+                                _this.calcTemporalTime();
+                                _this.calcLocalTime();
+                            }, 1000);
+                        })
+                        .catch(e => {
+                            console.log('err', url, e)
+                        });
+                },
+
+                calcTemporalTime() {
+                    let now = new Date();
+                    let start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+                    let end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 999);
+                    let dayTime = this.down.getTime() - this.rise.getTime();
+                    let nightTime =
+                        this.rise.getTime() -
+                        start.getTime() +
+                        (end.getTime() - this.down.getTime());
+
+                    this.tmp = dayTime + "_" + nightTime;
+
+                    let isNight = false;
+                    if (
+                        now.getTime() < this.rise.getTime() ||
+                        now.getTime() > this.down.getTime()
+                    ) {
+                        isNight = true;
+                    } else {
+                        isNight = false;
+                    }
+
+                    if (isNight) {
+                        let progress = now.getTime() - this.down.getTime();
+                        let tmp = progress / nightTime;
+                        let hour = Math.ceil(Math.ceil(720 * tmp) / 60) + this.down.getHours();
+                        let minute = (Math.ceil(720 * tmp) % 60) + this.down.getMinutes();
+                        if (minute >= 60) {
+                            minute = minute - 60;
+                            hour = hour + 1;
+                        }
+                        this.temporalHour = hour;
+                        this.temporalMinute = minute;
+                        this.updateData(hour % 12 + minute / 60, minute);
+                        this.moveHands();
+                        this.timeDifference =
+                            (hour - now.getHours()) * 60 +
+                            Math.abs(now.getMinutes() - minute);
+
+                    } else {
+                        let progress = now.getTime() - this.rise.getTime();
+                        let tmp = progress / dayTime;
+                        let hour = Math.ceil(Math.ceil(720 * tmp) / 60) + this.rise.getHours();
+                        let minute = (Math.ceil(720 * tmp) % 60) + this.rise.getMinutes();
+                        if (minute >= 60) {
+                            minute = minute - 60;
+                            hour = hour + 1;
+                        }
+                        this.temporalHour = hour;
+                        this.temporalMinute = minute;
+                        this.updateData(hour % 12 + minute / 60, minute);
+                        this.moveHands();
+
+                    }
+                },
+
+                pad: function (n) { return n < 10 ? '0' + n : n },
+
+                calcLocalTime: function () {
+                    let d = new Date();
+                    let localTime = d.getTime() + (60000 * d.getTimezoneOffset()) + (3600000 * this.long / 15);
+                    d = new Date(localTime);
+                    this.localHour = d.getHours();
+                    this.localMinute = d.getMinutes() < 10 ? '0' + d.getMinutes() : d.getMinutes();
+                },
+
+                getFormatedTime(type) {
+                    // {{ tims()}}{{ temporalHour }}:{{  }}{{ localHour }}:{{ localMinute }}
+                    let min = 0;
+                    switch (type) {
+                        case "temporal":
+                            min = parseInt(this.temporalMinute);
+                            min = min < 10 ? '0' + min : min;
+                            return this.temporalHour + ':' + min;
+
+                        case "official":
+                            min = parseInt(this.time.getMinutes());
+                            min = min < 10 ? '0' + min : min;
+                            return this.time.getHours() + ':' + min;
+
+                        case "local":
+                            min = parseInt(this.localMinute);
+                            min = min < 10 ? '0' + min : min;
+                            return this.localHour + ':' + min;
+                        default:
+                            return '0:00'
+                    }
+                },
+
+
+                visualizeClock: function () {
+                    let _this = this;
+
+                    //_this.drawClock();
+
+                    /*
+                    setInterval(function () {
+                        _this.updateData();
+                        _this.moveHands();
+                    }, 1000);
+                    */
+
+                    //d3.select(self.frameElement).style("height", height + "px");
+
+                },
+
+                hourScale: d3.scale.linear()
+                    .range([0, 330])
+                    .domain([0, 11])
+                ,
+
+                minuteScale: d3.scale.linear()
+                    .range([0, 354])
+                    .domain([0, 59])
+                ,
+
+                secondScale: d3.scale.linear()
+                    .range([0, 354])
+                    .domain([0, 59])
+                ,
+
+                moveHands: function () {
+                    d3.select('#clock-hands').selectAll('line')
+                        .data(this.handData)
+                        .transition()
+                        .attr('transform', function (d) {
+                            return 'rotate(' + d.scale(d.value) + ')';
+                        });
+                },
+
+                updateData: function (hour, minute) {
+                    var t = new Date();
+                    if (hour === undefined && minute === undefined) {
+                        this.handData[0].value = (t.getHours() % 12) + t.getMinutes() / 60;
+                        this.handData[1].value = t.getMinutes();
+                        //this.handData[2].value = t.getSeconds();
+                    } else {
+                        this.handData[0].value = hour;
+                        this.handData[1].value = minute;
+                        //this.handData[2].value = t.getSeconds();
+                        //this.drawClock()
+                    }
+
+                },
+
+                drawClock: function () { //create all the clock elements
+                    let _this = this;
+                    //this.updateData();	//draw them in the correct starting position
+
+                    var svg = d3.select("#clock").append("svg")
+                        .attr("width", this.width)
+                        .attr("height", this.height);
+
+                    var face = svg.append('g')
+                        .attr('id', 'clock-face')
+                        .attr('transform', 'translate(' + (this.clockRadius + this.margin) + ',' + (this.clockRadius + this.margin) + ')');
+
+                    //add marks for seconds
+                    face.selectAll('.second-tick')
+                        .data(d3.range(0, 60)).enter()
+                        .append('line')
+                        .attr('class', 'second-tick')
+                        .attr('x1', 0)
+                        .attr('x2', 0)
+                        .attr('y1', this.secondTickStart)
+                        .attr('y2', this.secondTickStart + this.secondTickLength)
+                        .attr('transform', function (d) {
+                            return 'rotate(' + _this.secondScale(d) + ')';
+                        });
+
+                    //and labels
+
+                    face.selectAll('.second-label')
+                        .data(d3.range(5, 61, 5))
+                        .enter()
+                        .append('text')
+                        .attr('class', 'second-label')
+                        .attr('text-anchor', 'middle')
+                        .attr('x', function (d) {
+                            return _this.secondLabelRadius * Math.sin(_this.secondScale(d) * _this.radians);
+                        })
+                        .attr('y', function (d) {
+                            return -_this.secondLabelRadius * Math.cos(_this.secondScale(d) * _this.radians) + _this.secondLabelYOffset;
+                        })
+                        .text(function (d) {
+                            return d;
+                        });
+
+                    //... and hours
+                    face.selectAll('.hour-tick')
+                        .data(d3.range(0, 12)).enter()
+                        .append('line')
+                        .attr('class', 'hour-tick')
+                        .attr('x1', 0)
+                        .attr('x2', 0)
+                        .attr('y1', _this.hourTickStart)
+                        .attr('y2', _this.hourTickStart + _this.hourTickLength)
+                        .attr('transform', function (d) {
+                            return 'rotate(' + _this.hourScale(d) + ')';
+                        });
+
+                    face.selectAll('.hour-label')
+                        .data(d3.range(3, 13, 3))
+                        .enter()
+                        .append('text')
+                        .attr('class', 'hour-label')
+                        .attr('text-anchor', 'middle')
+                        .attr('x', function (d) {
+                            return _this.hourLabelRadius * Math.sin(_this.hourScale(d) * _this.radians);
+                        })
+                        .attr('y', function (d) {
+                            return -_this.hourLabelRadius * Math.cos(_this.hourScale(d) * _this.radians) + _this.hourLabelYOffset;
+                        })
+                        .text(function (d) {
+                            return d;
+                        });
+
+
+                    var hands = face.append('g').attr('id', 'clock-hands');
+
+                    face.append('g').attr('id', 'face-overlay')
+                        .append('circle').attr('class', 'hands-cover')
+                        .attr('x', 0)
+                        .attr('y', 0)
+                        .attr('r', _this.clockRadius / 20);
+
+                    hands.selectAll('line')
+                        .data(_this.handData)
+                        .enter()
+                        .append('line')
+                        .attr('class', function (d) {
+                            return d.type + '-hand';
+                        })
+                        .attr('x1', 0)
+                        .attr('y1', function (d) {
+                            return d.balance ? d.balance : 0;
+                        })
+                        .attr('x2', 0)
+                        .attr('y2', function (d) {
+                            return d.length;
+                        })
+                        .attr('transform', function (d) {
+                            return 'rotate(' + d.scale(d.value) + ')';
+                        });
+                },
+            },
+
+
+            watch: {
+                time: function () {
+                    return new Date();
+                },
+            }
+        });
+    </script>
+</body>
+
+</html>
