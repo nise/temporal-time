@@ -1,6 +1,8 @@
 <!--
 TODO
 - fix time after midnight
+- fix time diff
+- add language bitton
 - deploy: https://cli.vuejs.org/guide/deployment.html#github-pages
 
 creditd: http://bl.ocks.org/tomgp/6475678
@@ -95,8 +97,9 @@ creditd: http://bl.ocks.org/tomgp/6475678
         }
 
         .details {
-            width: 30%;
+            width: 40%;
             font-size: medium;
+            margin-bottom: 0;
         }
 
         .details ul {
@@ -104,7 +107,8 @@ creditd: http://bl.ocks.org/tomgp/6475678
             list-style-type: none;
         }
 
-        .time h4 {
+        .time h4,
+        .details h4 {
             margin-bottom: 4px;
             margin: 0 6px 4px 6px;
         }
@@ -126,39 +130,45 @@ creditd: http://bl.ocks.org/tomgp/6475678
 
 <body>
     <div id="app" class="container">
-        <h1>Temporalzeit</h1>
+        <h1 v-html="lang('temporalTime')"></h1>
         <div class="time">
             <div class="time-cell">
-                <h4>Temporalzeit</h4>{{ getFormatedTime("temporal")}}<br>
-                <span class="note">Abweichung: {{ timeDifference }} Min</span>
+                <h4 v-html="lang('temporalTime')"></h4>
+                <span>{{ getFormatedTime("temporal") }}</span><br>
+                <span v-html="lang('difference')" class="note"></span>
+                <span class="note"> {{ timeDifference }} Min</span>
             </div>
             <div class="time-cell">
-                <h4>Offizielle Zeit</h4>{{ getFormatedTime("official") }}
+                <h4 v-html="lang('localTime')"></h4>
+                <span>{{ getFormatedTime("local") }}</span>
             </div>
             <div class="time-cell">
-                <h4>Ortszeit</h4>{{getFormatedTime("local") }}
+                <h4 v-html="lang('solarTime')"></h4>
+                <span>{{ getFormatedTime("solar") }}</span>
             </div>
         </div>
         <div id="clock"></div>
         <div class="details">
-            <h4>Details</h4>
+            <h4 v-html="lang('details')"></h4>
             <ul>
-                <li>Längengrad: {{long}}</li>
-                <li>Breitengrad: {{lat}}</li>
-                <li>Sonnenaufgang: {{rise.getHours() }}:{{rise.getMinutes()}}:{{rise.getSeconds()}}</li>
-                <li>Sonnenuntergang: {{down.getHours() }}:{{down.getMinutes()}}:{{down.getSeconds()}}</li>
+                <li><span v-html="lang('long')"></span> {{long}}</li>
+                <li><span v-html="lang('lat')"></span></span> {{lat}}</li>
+                <li><span v-html="lang('sunrise')"></span></span> {{rise.getHours()
+                    }}:{{rise.getMinutes()}}:{{rise.getSeconds()}}</li>
+                <li><span v-html="lang('sunset')"></span> {{down.getHours()
+                    }}:{{down.getMinutes()}}:{{down.getSeconds()}}</li>
             </ul>
         </div>
     </div>
     <script type="module">
-
-        let app = new Vue({
+        const { createApp } = Vue;
+        createApp({
             el: '#app',
             data() {
                 return {
                     time: new Date(),
-                    localHour: 0,
-                    localMinute: 0,
+                    sunHour: 0,
+                    sunMinute: 0,
                     temporalHour: null,
                     temporalMinute: null,
                     timeDifference: 0,
@@ -187,6 +197,32 @@ creditd: http://bl.ocks.org/tomgp/6475678
                     secondLabelYOffset: 5,
                     hourLabelRadius: 0,
                     hourLabelYOffset: 7,
+                    selectedLanguage: "de",
+                    language: {
+                        "de": {
+                            "temporalTime": "Temporalzeit",
+                            "localTime": "Ortszeit",
+                            "solarTime": "Sonnenzeit",
+                            "difference": "Differenz: ",
+                            "details": "Details",
+                            "long": "Längengrad:",
+                            "lat": "Breitengrad:",
+                            "sunrise": "Sonnenaufgang:",
+                            "sunset": "Sonnenuntergang:",
+                        },
+                        "en": {
+                            "temporalTime": "Temporal time",
+                            "localTime": "Local Time",
+                            "solarTime": "Sun time",
+                            "difference": "Difference: ",
+                            "details": "Details",
+                            "long": "Longitude:",
+                            "lat": "Latitude:",
+                            "sunrise": "Sunrise:",
+                            "sunset": "Sunset:",
+                        }
+                    },
+
                 };
             },
 
@@ -237,6 +273,12 @@ creditd: http://bl.ocks.org/tomgp/6475678
             },
 
             methods: {
+                lang: function (key) {
+                    return this.language[this.selectedLanguage][key];
+                },
+                /**
+                 * Get geo position
+                */
                 getPosition: function () {
                     let _this = this;
                     if (navigator.geolocation) {
@@ -247,32 +289,116 @@ creditd: http://bl.ocks.org/tomgp/6475678
                         });
                     }
                 },
-
+                /**
+                 * Get time of local sunrise and sunset
+                */
                 getSunTimes: function () {
                     if (!this.lat && !this.long) {
                         return;
                     }
                     let d = new Date();
                     let date = d.getFullYear() + '-' + this.pad(d.getMonth() + 1) + '-' + this.pad(d.getDate());
-                    let url = 'https://api.met.no/weatherapi/sunrise/2.0/.json?lat=' + this.lat + '&lon=' + this.long + '&date=' + date + '&offset=-00:00';
+                    let url = 'https://api.met.no/weatherapi/sunrise/3.0/sun?lat=' + this.lat + '&lon=' + this.long + '&date=' + date + '&offset=-00:00';
                     let _this = this;
 
                     axios
                         .get(url)
                         .then(function (response) {
-                            console.log('reponse')
-                            _this.rise = new Date(response.data.location.time[0].sunrise.time); //new Date(2019, 11, 13, 8, 25);
-                            _this.down = new Date(response.data.location.time[0].sunset.time); //new Date(2019, 11, 13, 16, 26);
+                            console.log(response)
+                            //_this.rise = new Date(response.data.location.time[0].sunrise.time); //new Date(2019, 11, 13, 8, 25);
+                            //_this.down = new Date(response.data.location.time[0].sunset.time); //new Date(2019, 11, 13, 16, 26);
+                            _this.rise = new Date(response.data.properties.sunrise.time);
+                            _this.down = new Date(response.data.properties.sunset.time);
                             setInterval(function () {
                                 _this.calcTemporalTime();
-                                _this.calcLocalTime();
+                                _this.calcSolarTime();
                             }, 1000);
                         })
                         .catch(e => {
                             console.log('err', url, e)
                         });
                 },
+                /**
+                 * 
+                */
+                calcTemporalTime_updated() {
+                    const now = new Date();
+                    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+                    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
 
+                    // Tageslänge (Sonnenaufgang bis Sonnenuntergang)
+                    const dayLength = this.down.getTime() - this.rise.getTime();
+
+                    // Nachtlänge (Sonnenuntergang bis Sonnenaufgang nächster Tag)
+                    const nightLength = (nextMidnight.getTime() - this.down.getTime()) +
+                        (this.rise.getTime() - midnight.getTime());
+
+                    let isNight = false;
+                    let temporalHour, temporalMinute, progress, ratio;
+
+                    // Prüfen ob Nacht
+                    if (now.getTime() >= this.down.getTime() || now.getTime() < this.rise.getTime()) {
+                        isNight = true;
+
+                        // Fortschritt in der Nacht berechnen
+                        if (now.getTime() >= this.down.getTime()) {
+                            // Abend/Nacht bis Mitternacht
+                            progress = now.getTime() - this.down.getTime();
+                        } else {
+                            // Nach Mitternacht bis Sonnenaufgang
+                            progress = (nextMidnight.getTime() - this.down.getTime()) +
+                                (now.getTime() - midnight.getTime());
+                        }
+
+                        // Verhältnis: wieviel der Nacht ist vergangen (0-1)
+                        ratio = progress / nightLength;
+
+                        // 12 Nachtstunden verteilen
+                        const totalMinutes = ratio * 720; // 12 Stunden = 720 Minuten
+                        temporalHour = Math.floor(totalMinutes / 60) + 1; // 1-12
+                        temporalMinute = Math.floor(totalMinutes % 60);
+
+                        // In normale Zeit umrechnen (für Anzeige)
+                        const displayHour = this.down.getHours() + Math.floor(totalMinutes / 60);
+                        const displayMinute = Math.floor(totalMinutes % 60);
+
+                        this.temporalHour = temporalHour;
+                        this.temporalMinute = temporalMinute;
+                        this.updateData((displayHour % 12) + displayMinute / 60, displayMinute);
+
+                    } else {
+                        // Tag
+                        isNight = false;
+
+                        // Fortschritt im Tag
+                        progress = now.getTime() - this.rise.getTime();
+                        ratio = progress / dayLength;
+
+                        // 12 Tagesstunden verteilen
+                        const totalMinutes = ratio * 720;
+                        temporalHour = Math.floor(totalMinutes / 60) + 1; // 1-12
+                        temporalMinute = Math.floor(totalMinutes % 60);
+
+                        // In normale Zeit umrechnen
+                        const displayHour = this.rise.getHours() + Math.floor(totalMinutes / 60);
+                        const displayMinute = Math.floor(totalMinutes % 60);
+
+                        this.temporalHour = temporalHour;
+                        this.temporalMinute = temporalMinute;
+                        this.updateData((displayHour % 12) + displayMinute / 60, displayMinute);
+                    }
+
+                    this.moveHands();
+
+                    // Zeitdifferenz zur normalen Zeit
+                    this.timeDifference = Math.abs(
+                        (this.temporalHour - now.getHours()) * 60 +
+                        (this.temporalMinute - now.getMinutes())
+                    );
+                },
+                /**
+                 * Calculation of temporal time
+                */
                 calcTemporalTime() {
                     let now = new Date();
                     let start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -310,7 +436,7 @@ creditd: http://bl.ocks.org/tomgp/6475678
                         this.moveHands();
                         this.timeDifference =
                             (hour - now.getHours()) * 60 +
-                            Math.abs(now.getMinutes() - minute);
+                            Math.abs(now.getMinutes() - minute); // FIXME: ...
 
                     } else {
                         let progress = now.getTime() - this.rise.getTime();
@@ -325,44 +451,52 @@ creditd: http://bl.ocks.org/tomgp/6475678
                         this.temporalMinute = minute;
                         this.updateData(hour % 12 + minute / 60, minute);
                         this.moveHands();
-
                     }
                 },
-
-                pad: function (n) { return n < 10 ? '0' + n : n },
-
-                calcLocalTime: function () {
-                    let d = new Date();
-                    let localTime = d.getTime() + (60000 * d.getTimezoneOffset()) + (3600000 * this.long / 15);
-                    d = new Date(localTime);
-                    this.localHour = d.getHours();
-                    this.localMinute = d.getMinutes() < 10 ? '0' + d.getMinutes() : d.getMinutes();
+                /**
+                 * Adds a leading zero if the given number is lower than 10
+                */
+                pad: function (n) {
+                    return n < 10 ? '0' + n : n;
                 },
-
+                /**
+                 * Calculate solar time
+                */
+                calcSolarTime: function () {
+                    const d = new Date();
+                    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+                    const solarTime = new Date(utc + (this.long * 240000)); // 4 minutes pro degree
+                    this.solarHour = solarTime.getUTCHours();
+                    this.solarMinute = this.pad(solarTime.getUTCMinutes());
+                },
+                /**
+                 * Format temporal, local, and solar time decimal format
+                */
                 getFormatedTime(type) {
-                    // {{ tims()}}{{ temporalHour }}:{{  }}{{ localHour }}:{{ localMinute }}
+                    // {{ tims()}}{{ temporalHour }}:{{  }}{{ solarHour }}:{{ solarMinute }}
                     let min = 0;
                     switch (type) {
                         case "temporal":
                             min = parseInt(this.temporalMinute);
-                            min = min < 10 ? '0' + min : min;
+                            min = this.pad(min);
                             return this.temporalHour + ':' + min;
 
-                        case "official":
+                        case "local":
                             min = parseInt(this.time.getMinutes());
-                            min = min < 10 ? '0' + min : min;
+                            min = this.pad(min);
                             return this.time.getHours() + ':' + min;
 
-                        case "local":
-                            min = parseInt(this.localMinute);
-                            min = min < 10 ? '0' + min : min;
-                            return this.localHour + ':' + min;
+                        case "solar":
+                            min = parseInt(this.solarMinute);
+                            min = this.pad(min);
+                            return this.solarHour + ':' + min;
                         default:
                             return '0:00'
                     }
                 },
-
-
+                /**
+                 * Visualise clock
+                */
                 visualizeClock: function () {
                     let _this = this;
 
@@ -519,14 +653,12 @@ creditd: http://bl.ocks.org/tomgp/6475678
                         });
                 },
             },
-
-
             watch: {
                 time: function () {
                     return new Date();
                 },
             }
-        });
+        }).mount('#app');
     </script>
 </body>
 
