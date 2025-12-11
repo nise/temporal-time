@@ -17,10 +17,6 @@
   ],
   "author": "Niels Seidel <niels.seidel@nise81.com>",
   "license": "MIT",
-  "dependencies": {
-    "axios": "^1.13.2"
-  },
-  "devDependencies": {
-    "serve": "^14.2.5"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }
