@@ -331,9 +331,6 @@ TODO
                     axios
                         .get(url)
                         .then(function (response) {
-                            console.log(response)
-                            //_this.rise = new Date(response.data.location.time[0].sunrise.time); //new Date(2019, 11, 13, 8, 25);
-                            //_this.down = new Date(response.data.location.time[0].sunset.time); //new Date(2019, 11, 13, 16, 26);
                             _this.rise = new Date(response.data.properties.sunrise.time);
                             _this.down = new Date(response.data.properties.sunset.time);
                             setInterval(function () {
