@@ -2,10 +2,7 @@
 TODO
 - done: fix time after midnight
 - done: fix time diff
-- add language bitton
-- deploy: https://cli.vuejs.org/guide/deployment.html#github-pages
-
-creditd: http://bl.ocks.org/tomgp/6475678
+- done: deploy as github page
 -->
 <!DOCTYPE html>
 <html>
@@ -125,11 +122,35 @@ creditd: http://bl.ocks.org/tomgp/6475678
             color: darkred;
             font-size: small;
         }
+
+        .footer {
+            font-size: 0.6em;
+            color: #999;
+            margin: 100px auto 0px auto;
+        }
+
+        .footer a {
+            text-decoration: none;
+            color: darkblue;
+        }
+
+        .language-toggle {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            min-width: 80px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
     <div id="app" class="container">
+        <div class="language-toggle btn btn-secondary"
+            @click="selectedLanguage = selectedLanguage === 'de' ? 'en' : 'de'">
+            {{ selectedLanguage === 'de' ? '🇬🇧 English' : '🇩🇪 Deutsch' }}
+        </div>
         <h1 v-html="lang('temporalTime')"></h1>
         <div class="time">
             <div class="time-cell">
@@ -158,6 +179,12 @@ creditd: http://bl.ocks.org/tomgp/6475678
                 <li><span v-html="lang('sunset')"></span> {{down.getHours()
                     }}:{{down.getMinutes()}}:{{down.getSeconds()}}</li>
             </ul>
+        </div>
+        <div class="footer">
+            By <a href="https://www.nise81.com">Niels Seidel</a>, 2025 | see source code at <a
+                href="https://github.com/nise/temporal-time">GitHub</a> |
+            credits:
+            <a href="http://bl.ocks.org/tomgp/6475678">tomgp's clock</a>
         </div>
     </div>
     <script type="module">
@@ -211,9 +238,9 @@ creditd: http://bl.ocks.org/tomgp/6475678
                             "sunset": "Sonnenuntergang:",
                         },
                         "en": {
-                            "temporalTime": "Temporal time",
+                            "temporalTime": "Temporal Time",
                             "localTime": "Local Time",
-                            "solarTime": "Sun time",
+                            "solarTime": "Sun Time",
                             "difference": "Difference: ",
                             "details": "Details",
                             "long": "Longitude:",
