@@ -7,8 +7,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "serve"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "clock",
@@ -19,9 +18,9 @@
   "author": "Niels Seidel <niels.seidel@nise81.com>",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.2"
+    "axios": "^1.13.2"
   },
   "devDependencies": {
-    "serve": "^11.2.0"
+    "serve": "^14.2.5"
   }
 }
