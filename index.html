@@ -1,5 +1,6 @@
 <!--
 TODO
+- bug at time difference
 - done: fix time after midnight
 - done: fix time diff
 - done: deploy as github page
@@ -156,8 +157,8 @@ TODO
             <div class="time-cell">
                 <h4 v-html="lang('temporalTime')"></h4>
                 <span>{{ getFormatedTime("temporal") }}</span><br>
-                <span v-html="lang('difference')" class="note"></span>
-                <span class="note"> {{ timeDifference }} Min</span>
+                <span hidden v-html="lang('difference')" class="note"></span>
+                <span hidden class="note"> {{ timeDifference }} Min</span>
             </div>
             <div class="time-cell">
                 <h4 v-html="lang('localTime')"></h4>
