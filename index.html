@@ -95,20 +95,25 @@ TODO
         }
 
         .details {
-            width: 40%;
+            width: 80%;
             font-size: medium;
             margin-bottom: 0;
         }
 
         .details ul {
-            text-align: right;
+            text-align: left;
             list-style-type: none;
+            margin: 0 auto;
         }
 
         .time h4,
         .details h4 {
             margin-bottom: 4px;
             margin: 0 6px 4px 6px;
+        }
+
+        .details h4 {
+            text-align: left;
         }
 
         .time-cell {
@@ -181,6 +186,15 @@ TODO
                     }}:{{down.getMinutes()}}:{{down.getSeconds()}}</li>
             </ul>
         </div>
+        <div class="details">
+            <h4 v-html="lang('reading')"></h4>
+            <ul>
+                <li><a href="https://en.wikipedia.org/wiki/Unequal_hours">Unequal Hours (English)</a></li>
+                <li><a href="https://de.wikipedia.org/wiki/Temporale_Stunden">Temporalzeit (Deutsch)</a></li>
+                <li><a href="https://de.wikipedia.org/wiki/Temporale_Stunden">Die Temporaluhr: Stunden, die sich an
+                        Sonnenauf- und -untergang anpassen (Deutsch)</a></li>
+            </ul>
+        </div>
         <div class="footer">
             By <a href="https://www.nise81.com">Niels Seidel</a>, 2025 | see source code at <a
                 href="https://github.com/nise/temporal-time">GitHub</a> |
@@ -233,6 +247,7 @@ TODO
                             "solarTime": "Sonnenzeit",
                             "difference": "Differenz: ",
                             "details": "Details",
+                            "reading": "Weitere Informationen",
                             "long": "Längengrad:",
                             "lat": "Breitengrad:",
                             "sunrise": "Sonnenaufgang:",
@@ -244,6 +259,7 @@ TODO
                             "solarTime": "Sun Time",
                             "difference": "Difference: ",
                             "details": "Details",
+                            "reading": "Further reading",
                             "long": "Longitude:",
                             "lat": "Latitude:",
                             "sunrise": "Sunrise:",
