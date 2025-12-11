@@ -8,6 +8,8 @@ This project contains a progressiv web app that displays the temporal time as a 
 
 **See the demo:** https://nise.github.io/temporal-time/
 
+<img src="images/screenshot-temporal-time-clock-webapp.png" height="300"/>
+
 ## Temporal Time Algorithm
 
 ```
